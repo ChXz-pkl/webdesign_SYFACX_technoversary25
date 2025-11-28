@@ -1,88 +1,88 @@
 import { setGameCompleted } from "../GameController.js";
-
+import { applyHeroBackgroundSafely, markSectionAsComplete } from "./HeroSection.js"; 
 const ALL_RECYCLE_PRODUCTS = [
     {
         id: 'new-book',
         name: 'Buku Baru',
         imgSrc: './public/img/recycle/product/book.svg',
-        materials: ['kertas-bekas', 'kardus-bekas'], 
+        materials: ['kertas-bekas', 'kardus-bekas'],
         isCrafted: false,
     },
     {
         id: 'plastic-lumber',
         name: 'Kayu Plastik',
         imgSrc: './public/img/recycle/product/plastic_lumber.svg',
-        materials: ['botol-hdpe', 'botol-pet'], 
+        materials: ['botol-hdpe', 'botol-pet'],
         isCrafted: false,
     },
     {
         id: 'glass-tile',
         name: 'Ubin Kaca',
         imgSrc: './public/img/recycle/product/glass_tile.svg',
-        materials: ['kaca-botol', 'kaca-piring'], 
+        materials: ['kaca-botol', 'kaca-piring'],
         isCrafted: false,
     },
     {
         id: 'metal-bar',
         name: 'Batang Logam',
         imgSrc: './public/img/recycle/product/metal_bar.svg',
-        materials: ['kaleng-aluminium', 'kaleng-besi'], 
+        materials: ['kaleng-aluminium', 'kaleng-besi'],
         isCrafted: false,
     },
     {
         id: 'compost',
         name: 'Kompos',
         imgSrc: './public/img/recycle/product/compost.svg',
-        materials: ['sisa-sayuran', 'kulit-buah'], 
+        materials: ['sisa-sayuran', 'kulit-buah'],
         isCrafted: false,
     },
     {
         id: 'yarn',
         name: 'Benang Daur Ulang',
         imgSrc: './public/img/recycle/product/yarn.svg',
-        materials: ['kain-bekas', 'plastik-film'], 
+        materials: ['kain-bekas', 'plastik-film'],
         isCrafted: false,
     },
     {
         id: 'oil-paint',
         name: 'Cat Minyak',
         imgSrc: './public/img/recycle/product/oil_paint.svg',
-        materials: ['minyak-jelantah', 'ampas-kopi'], 
+        materials: ['minyak-jelantah', 'ampas-kopi'],
         isCrafted: false,
     },
     {
         id: 'brick',
         name: 'Batu Bata',
         imgSrc: './public/img/recycle/product/brick.svg',
-        materials: ['serbuk-kayu', 'styrofoam-bekas'], 
+        materials: ['serbuk-kayu', 'styrofoam-bekas'],
         isCrafted: false,
     },
     {
         id: 'new-paper',
         name: 'Kertas Daur Ulang',
-        imgSrc: './public/img/recycle/product/paper_new.svg', 
-        materials: ['kertas-bekas', 'kain-bekas'], 
+        imgSrc: './public/img/recycle/product/paper_new.svg',
+        materials: ['kertas-bekas', 'kain-bekas'],
         isCrafted: false,
     },
     {
         id: 'insulation',
         name: 'Material Isolasi',
-        imgSrc: './public/img/recycle/product/insulation.svg', 
-        materials: ['kardus-bekas', 'plastik-film'], 
+        imgSrc: './public/img/recycle/product/insulation.svg',
+        materials: ['kardus-bekas', 'plastik-film'],
         isCrafted: false,
     },
     {
         id: 'new-bottle',
-        name: 'Botol Kaca',
-        imgSrc: './public/img/recycle/product/glass_bottle_new.svg', 
-        materials: ['kaca-botol', 'kaleng-aluminium'], 
+        name: 'gelas Kaca',
+        imgSrc: './public/img/recycle/product/glass_bottle_new.svg',
+        materials: ['kaca-botol', 'kaleng-aluminium'],
         isCrafted: false,
     },
     {
         id: 'plastic-fuel',
         name: 'Bahan Bakar Plastik',
-        imgSrc: './public/img/recycle/product/plastic_fuel.svg', 
-        materials: ['botol-hdpe', 'minyak-jelantah'], 
+        imgSrc: './public/img/recycle/product/plastic_fuel.svg',
+        materials: ['botol-hdpe', 'minyak-jelantah'],
         isCrafted: false,
     },
 ];
@@ -107,23 +107,26 @@ const BASE_MATERIALS = [
 ];
 
 
-let machineSlots = [null, null]; 
-let productsCraftedCount = 0; 
-let totalHitCounter = 0; 
-let hintTriggerCounter = 0; 
-const TARGET_PRODUCTS_COUNT = 6; 
-let ACTIVE_RECYCLE_PRODUCTS = []; 
-let ACTIVE_RECYCLE_MATERIALS = []; 
+let machineSlots = [null, null];
+let productsCraftedCount = 0;
+let totalHitCounter = 0;
+let hintTriggerCounter = 0;
+const TARGET_PRODUCTS_COUNT = 6;
+let ACTIVE_RECYCLE_PRODUCTS = [];
+let ACTIVE_RECYCLE_MATERIALS = [];
 
-const soundCorrect = new Audio('./public/music/sound/correct.mp3'); 
-const soundIncorrect = new Audio('./public/music/sound/incorrect.mp3'); 
-const soundComplete = new Audio('./public/music/sound/complete.mp3'); 
+let draggedElement = null;
+let currentDraggedId = null;
+
+const soundCorrect = new Audio('./public/music/sound/correct.mp3');
+const soundIncorrect = new Audio('./public/music/sound/incorrect.mp3');
+const soundComplete = new Audio('./public/music/sound/complete.mp3');
 
 function playCraftSuccessSound() {
     try {
-        if (soundCorrect) { 
-            soundCorrect.pause(); 
-            soundCorrect.currentTime = 0; 
+        if (soundCorrect) {
+            soundCorrect.pause();
+            soundCorrect.currentTime = 0;
             soundCorrect.play();
         }
     } catch (e) {
@@ -133,9 +136,9 @@ function playCraftSuccessSound() {
 
 function playCraftIncorrectSound() {
     try {
-        if (soundIncorrect) { 
-            soundIncorrect.pause(); 
-            soundIncorrect.currentTime = 0; 
+        if (soundIncorrect) {
+            soundIncorrect.pause();
+            soundIncorrect.currentTime = 0;
             soundIncorrect.play();
         }
     } catch (e) {
@@ -148,8 +151,8 @@ const recycleMachineSlot1 = document.getElementById('machine-slot-1');
 const recycleMachineSlot2 = document.getElementById('machine-slot-2');
 const recycleDropErrorContainer = document.getElementById('recycle-drop-error-message');
 const heroSection = document.getElementById('hero-section');
-const hitCounterElement = document.getElementById('hit-counter-value'); 
-const hintElement = document.getElementById('hint-message'); 
+const hitCounterElement = document.getElementById('hit-counter-value');
+const hintElement = document.getElementById('hint-message');
 
 const recycleOutputSlot1 = document.getElementById('output-slot-1');
 const recycleOutputSlot2 = document.getElementById('output-slot-2');
@@ -169,31 +172,31 @@ function shuffleArray(array) {
 function setupRecycleGame() {
     const allProducts = [...ALL_RECYCLE_PRODUCTS];
     shuffleArray(allProducts);
-    
+
     ACTIVE_RECYCLE_PRODUCTS = allProducts.slice(0, TARGET_PRODUCTS_COUNT).map(p => ({
         ...p,
-        isCrafted: false 
+        isCrafted: false
     }));
-    
+
     const requiredMaterialIds = new Set();
     ACTIVE_RECYCLE_PRODUCTS.forEach(p => {
         p.materials.forEach(m => requiredMaterialIds.add(m));
     });
-    
+
     const baseMaterialsNeeded = BASE_MATERIALS.filter(m => requiredMaterialIds.has(m.id));
-    
+
     ACTIVE_RECYCLE_MATERIALS = [
-        ...baseMaterialsNeeded.map(m => ({...m, id: m.id + '-A'})),
-        ...baseMaterialsNeeded.map(m => ({...m, id: m.id + '-B'}))
+        ...baseMaterialsNeeded.map(m => ({ ...m, id: m.id + '-A' })),
+        ...baseMaterialsNeeded.map(m => ({ ...m, id: m.id + '-B' }))
     ];
 
     productsCraftedCount = 0;
     machineSlots = [null, null];
-    totalHitCounter = 0; 
-    hintTriggerCounter = 0; 
-    
-    updateHitCounter(); 
-    
+    totalHitCounter = 0;
+    hintTriggerCounter = 0;
+
+    updateHitCounter();
+
     [recycleOutputSlot1, recycleOutputSlot2, recycleOutputSlot3, recycleOutputSlot4, recycleOutputSlot5, recycleOutputSlot6].forEach(slot => {
         if (slot) {
             slot.dataset.filled = 'false';
@@ -205,18 +208,18 @@ function setupRecycleGame() {
 function createItemElement(item, isDraggable = false) {
     const itemElement = document.createElement('div');
     itemElement.dataset.id = item.id;
-    
+
     if (isDraggable) {
-        itemElement.className = `recycle-item w-20 h-20 p-2 text-center cursor-grab 
+        itemElement.className = `
+                                recycle-item p-2 xs:w-16 xs:h-16 w-18 h-18 md:w-20 md:h-20 lg:w-22 lg:h-22 text-center cursor-grab 
                                 bg-gray-200 dark:bg-gray-700 rounded-lg 
                                 transition-all duration-300 hover:scale-110 flex flex-col justify-center items-center shadow-lg`;
         itemElement.setAttribute('draggable', true);
         itemElement.classList.add('material-drag-source');
-        
-        itemElement.innerHTML = `<img src="${item.imgSrc}" alt="${item.name}" class="recycle-drag-image w-16 h-16 object-contain" />
-                                 <p class="text-xs font-semibold mt-1">${item.name.replace(/-\s*[A|B]$/, '')}</p>`; 
-    } 
-    else if (item.materials) { 
+
+        itemElement.innerHTML = `<img src="${item.imgSrc}" alt="${item.name}" class="recycle-drag-image xs:w-8 xs:h-8 w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-14 object-contain" />
+                                 <p class="text-xs font-semibold mt-1">${item.name.replace(/-\s*[A|B]$/, '')}</p>`;
+    } else if (item.materials) {
         itemElement.className = `product-item w-full h-full p-2 text-center 
                                 bg-green-500 dark:bg-green-700 rounded-lg 
                                 flex flex-col justify-center items-center shadow-2xl`;
@@ -225,8 +228,8 @@ function createItemElement(item, isDraggable = false) {
             <p class="text-sm font-bold text-white leading-tight">${item.name}</p>
         `;
     }
-    else { 
-        itemElement.className = `slot-item w-full h-full p-2 text-center 
+    else {
+        itemElement.className = `slot-item w-full h-full p-2 text-center cursor-pointer
                                 bg-yellow-400 dark:bg-yellow-600 rounded-lg 
                                 flex flex-col justify-center items-center shadow-lg`;
         itemElement.innerHTML = `<img src="${item.imgSrc}" alt="${item.name}" class="w-16 h-16 object-contain" />`;
@@ -241,20 +244,20 @@ function renderItems() {
     if (!recycleMaterialsContainer) return;
 
     recycleMaterialsContainer.innerHTML = '';
-    
+
     if (availableMaterials.length === 0 && productsCraftedCount < TARGET_PRODUCTS_COUNT) {
         recycleMaterialsContainer.innerHTML = `
              <p class="text-lg font-bold text-red-500 dark:text-red-400 p-4">Material Habis! Coba acak ulang game.</p>
         `;
     } else if (availableMaterials.length === 0 && productsCraftedCount === TARGET_PRODUCTS_COUNT) {
-    } 
+    }
     else {
         availableMaterials.forEach(item => {
-            const itemEl = createItemElement(item, true); 
+            const itemEl = createItemElement(item, true);
             recycleMaterialsContainer.appendChild(itemEl);
         });
     }
-    
+
     updateMachineSlotsDOM();
 }
 
@@ -262,7 +265,7 @@ function updateMachineSlotsDOM() {
     [recycleMachineSlot1, recycleMachineSlot2].forEach((slotEl, index) => {
         if (!slotEl) return;
         const material = machineSlots[index];
-        slotEl.innerHTML = ''; 
+        slotEl.innerHTML = '';
 
         if (material) {
             const itemEl = createItemElement(material, false);
@@ -290,15 +293,15 @@ function showDropError(message) {
 }
 
 function displayProduct(product) {
-    const productEl = createItemElement(product, false); 
-    
+    const productEl = createItemElement(product, false);
+
     const outputSlots = [
         recycleOutputSlot1, recycleOutputSlot2, recycleOutputSlot3,
         recycleOutputSlot4, recycleOutputSlot5, recycleOutputSlot6
-    ].filter(slot => slot !== null); 
-    
+    ].filter(slot => slot !== null);
+
     let targetSlot = null;
-    
+
     for (const slot of outputSlots) {
         if (slot.dataset.filled === 'false') {
             targetSlot = slot;
@@ -307,7 +310,7 @@ function displayProduct(product) {
     }
 
     if (targetSlot) {
-        targetSlot.innerHTML = ''; 
+        targetSlot.innerHTML = '';
         targetSlot.appendChild(productEl);
         targetSlot.dataset.filled = 'true';
     }
@@ -315,40 +318,40 @@ function displayProduct(product) {
 
 function updateHitCounter() {
     if (hitCounterElement) {
-        hitCounterElement.textContent = totalHitCounter; 
+        hitCounterElement.textContent = totalHitCounter;
     }
 
     const nonCraftedProducts = ACTIVE_RECYCLE_PRODUCTS.filter(p => !p.isCrafted);
-    
+
     if (nonCraftedProducts.length === 0) {
         if (hintElement) hintElement.classList.add('hidden');
-        return; 
-    } 
+        return;
+    }
 
     let productsToShow = [];
     let hintText = '';
     let showHint = false;
-    
-    if (hintTriggerCounter >= 3) { 
+
+    if (hintTriggerCounter >= 2) {
         showHint = true;
-        
-        if (hintTriggerCounter >= 3 && hintTriggerCounter <= 5) { 
+
+        if (hintTriggerCounter >= 2 && hintTriggerCounter <= 3) {
             productsToShow = nonCraftedProducts.slice(0, 1);
-            hintText = productsToShow.map(p => 
+            hintText = productsToShow.map(p =>
                 `(${BASE_MATERIALS.find(m => m.id === p.materials[0]).name} + *** = ${p.name})`
             ).join(', ');
-        } 
-        else if (hintTriggerCounter >= 6) { 
+        }
+        else if (hintTriggerCounter >= 4) { 
             productsToShow = nonCraftedProducts.slice(0, 2);
-            
+
             if (productsToShow.length > 0) {
                 const p1 = productsToShow[0];
                 const fullHint = `(${BASE_MATERIALS.find(m => m.id === p1.materials[0]).name} + ${BASE_MATERIALS.find(m => m.id === p1.materials[1]).name} = ${p1.name})`;
-                
-                const partialHints = productsToShow.slice(1).map(p => 
+
+                const partialHints = productsToShow.slice(1).map(p =>
                     `(${BASE_MATERIALS.find(m => m.id === p.materials[0]).name} + *** = ${p.name})`
                 ).join(', ');
-                
+
                 hintText = fullHint + (partialHints ? ', ' + partialHints : '');
             } else {
                 showHint = false;
@@ -366,7 +369,7 @@ function updateHitCounter() {
             `;
             hintElement.classList.remove('hidden');
         } else {
-             hintElement.classList.add('hidden');
+            hintElement.classList.add('hidden');
         }
     }
 }
@@ -375,16 +378,16 @@ function checkRecycleProcess() {
     if (machineSlots[0] && machineSlots[1]) {
         const material1 = machineSlots[0];
         const material2 = machineSlots[1];
-        
-        const material1IdBase = material1.id.slice(0, -2); 
-        const material2IdBase = material2.id.slice(0, -2); 
-        
+
+        const material1IdBase = material1.id.slice(0, -2);
+        const material2IdBase = material2.id.slice(0, -2);
+
         if (material1IdBase === material2IdBase) {
-            playCraftIncorrectSound(); 
-            showDropError(`❌ Material tidak boleh dari jenis yang sama (${material1.name.replace(/-\s*[A|B]$/, '')}). Silakan seret salah satu keluar.`);
-            totalHitCounter++; 
-            hintTriggerCounter++; 
-            updateHitCounter(); 
+            playCraftIncorrectSound();
+            showDropError(`❌ Material tidak boleh dari jenis yang sama (${material1.name.replace(/-\s*[A|B]$/, '')}). Silakan **klik** salah satu material di slot mesin untuk mengeluarkannya.`);
+            totalHitCounter++;
+            hintTriggerCounter++;
+            updateHitCounter();
             return;
         }
 
@@ -393,10 +396,10 @@ function checkRecycleProcess() {
 
         for (const product of ACTIVE_RECYCLE_PRODUCTS) {
             const materials = product.materials;
-            
+
             const isMatch1 = materials.includes(material1IdBase) && materials.includes(material2IdBase);
             const isMatch2 = materials.includes(material2IdBase) && materials.includes(material1IdBase);
-            
+
             if ((isMatch1 || isMatch2) && materials.length === 2) {
                 isMatch = true;
                 matchedProduct = product;
@@ -405,53 +408,53 @@ function checkRecycleProcess() {
         }
 
         if (isMatch && !matchedProduct.isCrafted) {
-            
-            hintTriggerCounter = 0; 
-            
-            playCraftSuccessSound(); 
-            
+
+            hintTriggerCounter = 0;
+
+            playCraftSuccessSound();
+
             matchedProduct.isCrafted = true;
             productsCraftedCount++;
 
             const item1Index = ACTIVE_RECYCLE_MATERIALS.findIndex(item => item.id === material1.id);
             const item2Index = ACTIVE_RECYCLE_MATERIALS.findIndex(item => item.id === material2.id);
-            
+
             if (item1Index > -1) ACTIVE_RECYCLE_MATERIALS[item1Index].isUsed = true;
             if (item2Index > -1) ACTIVE_RECYCLE_MATERIALS[item2Index].isUsed = true;
 
             machineSlots = [null, null];
-            
+
             updateMachineSlotsDOM();
-            renderItems(); 
+            renderItems();
 
             displayProduct(matchedProduct);
 
-            updateHitCounter(); 
+            updateHitCounter();
             checkCompletion();
 
         } else if (isMatch && matchedProduct.isCrafted) {
-            playCraftIncorrectSound(); 
-            showDropError(`Produk ${matchedProduct.name} sudah dibuat! Seret salah satu material keluar dan coba kombinasi lain.`);
-            totalHitCounter++; 
+            playCraftIncorrectSound();
+            showDropError(`Produk ${matchedProduct.name} sudah dibuat! <b> Klik </b> salah satu material di slot mesin untuk mengeluarkannya dan coba kombinasi lain.`);
+            totalHitCounter++;
             hintTriggerCounter++;
-            updateHitCounter(); 
+            updateHitCounter();
         } else {
-            playCraftIncorrectSound(); 
+            playCraftIncorrectSound();
             showDropError(`❌ Kombinasi tidak menghasilkan produk baru. Coba lagi!`);
-            totalHitCounter++; 
+            totalHitCounter++;
             hintTriggerCounter++;
-            updateHitCounter(); 
+            updateHitCounter();
         }
     }
 }
 
 function checkCompletion() {
-    const allCrafted = productsCraftedCount === TARGET_PRODUCTS_COUNT; 
-    
+    const allCrafted = productsCraftedCount === TARGET_PRODUCTS_COUNT;
+
     if (allCrafted) {
         try {
-            soundComplete.play(); 
-        } catch(e) {
+            soundComplete.play();
+        } catch (e) {
             console.warn("Gagal memutar suara selesai game.", e);
         }
         handleGameSuccess();
@@ -460,36 +463,29 @@ function checkCompletion() {
 }
 
 function handleGameSuccess() {
-    const oldBgClasses = [
-        'bg-green-300', 'dark:bg-green-600', 'bg-gradient-to-br', 'from-lime-400', 'to-green-600', 
-        'bg-teal-300', 'dark:bg-teal-600', 'from-cyan-300', 'to-teal-500', 
-    ];
-    if (heroSection) {
-        heroSection.classList.remove(...oldBgClasses);
-        heroSection.classList.add('bg-green-800', 'dark:bg-gray-800', 'bg-gradient-to-r', 'from-green-800', 'to-green-900'); 
-    }
-    
+    applyHeroBackgroundSafely(['bg-green-800', 'dark:bg-gray-800', 'bg-gradient-to-r', 'from-green-800', 'to-green-900']);
+    markSectionAsComplete('recycle');
 
     if (recycleMaterialsContainer) {
         if (recycleMaterialsContainer.classList.contains('hidden')) {
-             recycleMaterialsContainer.classList.remove('hidden'); 
+            recycleMaterialsContainer.classList.remove('hidden');
         }
 
         recycleMaterialsContainer.innerHTML = '';
-        
+
         const successMessage = document.createElement('div');
         successMessage.className = `text-center p-6 bg-lime-100 dark:bg-lime-900 rounded-lg shadow-lg mb-6 col-span-2 transition-all duration-500`;
         successMessage.innerHTML = `
             <h3 class="text-3xl font-bold text-green-700 dark:text-green-400 mb-2">🎉 Selamat! Tantangan Recycle Selesai!</h3>
             <p class="text-gray-700 dark:text-gray-300">
-                Anda telah berhasil membuat ${TARGET_PRODUCTS_COUNT} produk daur ulang dengan total **${totalHitCounter}** kesalahan.
+                Anda telah berhasil membuat ${TARGET_PRODUCTS_COUNT} produk daur ulang dengan total <b>${totalHitCounter}</b> kesalahan.
             </p>
         `;
         recycleMaterialsContainer.className = `p-4 border-4 border-dashed border-green-700 dark:border-green-400 rounded-lg bg-green-50 dark:bg-green-950 shadow-inner flex flex-wrap gap-4 justify-center min-h-[100px] transition-all duration-500`;
         recycleMaterialsContainer.appendChild(successMessage);
     }
-    
-    const machineArea = document.querySelector('.machine-area'); 
+
+    const machineArea = document.querySelector('.machine-area');
     if (machineArea) {
         const machineSlotsContainer = machineArea.querySelector('.machine-slots');
         if (machineSlotsContainer) {
@@ -500,11 +496,10 @@ function handleGameSuccess() {
             machineArea.classList.add('bg-green-100', 'dark:bg-green-800');
         }
     }
-    
+
     const hitContainer = hitCounterElement ? hitCounterElement.closest('div') : null;
     if (hitContainer) hitContainer.classList.add('hidden');
 }
-
 
 function handleDragStart(e) {
     const bottleElement = e.target.closest('.material-drag-source');
@@ -532,7 +527,7 @@ function handleDragOver(e) {
     if (target) {
         const slotIndex = parseInt(target.dataset.slotIndex);
         if (!machineSlots[slotIndex]) {
-             target.classList.add('ring-4', 'ring-yellow-400', 'scale-[1.02]');
+            target.classList.add('ring-4', 'ring-yellow-400', 'scale-[1.02]');
         }
     }
 }
@@ -555,7 +550,7 @@ function handleDrop(e) {
 
     const slotIndex = parseInt(dropTarget.dataset.slotIndex);
     const draggedItem = ACTIVE_RECYCLE_MATERIALS.find(item => item.id === draggedId);
-    
+
     if (!draggedItem) {
         showDropError('Item tidak valid atau sudah digunakan.');
         return;
@@ -572,44 +567,127 @@ function handleDrop(e) {
     }
 
     machineSlots[slotIndex] = draggedItem;
-    
-    updateMachineSlotsDOM(); 
+
+    updateMachineSlotsDOM();
 
     checkRecycleProcess();
 }
 
+function getElementFromTouch(touch) {
+    return document.elementFromPoint(touch.clientX, touch.clientY);
+}
+
+function handleTouchStart(e) {
+    e.preventDefault();
+
+    const bottleElement = e.target.closest('.material-drag-source');
+    if (!bottleElement) return;
+
+    const materialId = bottleElement.dataset.id;
+    const draggedItem = ACTIVE_RECYCLE_MATERIALS.find(item => item.id === materialId);
+
+    if (!draggedItem || draggedItem.isUsed) {
+        return;
+    }
+
+    draggedElement = bottleElement;
+    currentDraggedId = materialId;
+
+    draggedElement.classList.add('opacity-40', 'touch-dragging');
+}
+
+function handleTouchMove(e) {
+    if (!draggedElement) return;
+
+    const touch = e.touches[0];
+    e.preventDefault();
+
+    const targetElement = getElementFromTouch(touch);
+
+    document.querySelectorAll('.machine-slot.ring-4').forEach(slot => {
+        slot.classList.remove('ring-4', 'ring-yellow-400', 'scale-[1.02]');
+    });
+
+    const dropTarget = targetElement ? targetElement.closest('.machine-slot') : null;
+
+    if (dropTarget) {
+        const slotIndex = parseInt(dropTarget.dataset.slotIndex);
+        if (!machineSlots[slotIndex]) {
+            dropTarget.classList.add('ring-4', 'ring-yellow-400', 'scale-[1.02]');
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!draggedElement) return;
+
+    draggedElement.classList.remove('opacity-40', 'touch-dragging');
+
+    document.querySelectorAll('.machine-slot.ring-4').forEach(slot => {
+        slot.classList.remove('ring-4', 'ring-yellow-400', 'scale-[1.02]');
+    });
+
+    const touch = e.changedTouches[0];
+    const targetElement = getElementFromTouch(touch);
+    const dropTarget = targetElement ? targetElement.closest('.machine-slot') : null;
+
+    if (dropTarget) {
+        const slotIndex = parseInt(dropTarget.dataset.slotIndex);
+        const draggedId = currentDraggedId;
+        const draggedItem = ACTIVE_RECYCLE_MATERIALS.find(item => item.id === draggedId);
+
+        if (!draggedItem || draggedItem.isUsed) {
+            showDropError('Item tidak valid atau sudah digunakan.');
+        }
+        else if (machineSlots[slotIndex]) {
+            showDropError(`Slot ${slotIndex + 1} sudah terisi. Klik material di slot untuk mengeluarkannya.`);
+        } else {
+            machineSlots[slotIndex] = draggedItem;
+            updateMachineSlotsDOM();
+            checkRecycleProcess();
+        }
+    }
+
+    draggedElement = null;
+    currentDraggedId = null;
+}
 
 export function initializeRecycleSection() {
-    setupRecycleGame(); 
-    renderItems(); 
+    setupRecycleGame();
+    renderItems();
 
-    if(recycleMaterialsContainer) {
+    if (recycleMaterialsContainer) {
         recycleMaterialsContainer.addEventListener('dragstart', handleDragStart);
         recycleMaterialsContainer.addEventListener('dragend', handleDragEnd);
     }
 
-
     [recycleMachineSlot1, recycleMachineSlot2].forEach(slotEl => {
-        if(slotEl) {
+        if (slotEl) {
             slotEl.addEventListener('dragover', handleDragOver);
             slotEl.addEventListener('dragleave', handleDragLeave);
             slotEl.addEventListener('drop', handleDrop);
         }
     });
 
+    if (recycleMaterialsContainer) {
+        recycleMaterialsContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+        recycleMaterialsContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+        recycleMaterialsContainer.addEventListener('touchend', handleTouchEnd);
+    }
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+
+
     [recycleMachineSlot1, recycleMachineSlot2].forEach((slotEl, index) => {
-        if(slotEl) {
+        if (slotEl) {
             slotEl.addEventListener('click', (e) => {
                 if (machineSlots[index] && e.target.closest('.machine-slot') === slotEl) {
-                    const item = machineSlots[index];
-                    
-                    const originalItem = ACTIVE_RECYCLE_MATERIALS.find(m => m.id === item.id);
-                    if(originalItem) originalItem.isUsed = false;
 
-                    machineSlots[index] = null; 
-                    
+                    machineSlots[index] = null;
+
                     updateMachineSlotsDOM();
-                    renderItems(); 
+                    renderItems();
                 }
             });
         }
